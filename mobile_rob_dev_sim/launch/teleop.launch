@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+
+<launch>
+	<node name="teleop_keyboard" pkg="teleop_twist_keyboard" type="teleop_twist_keyboard.py" args="cmd_vel:=/robot/cmd_vel" output="screen">
+        	<param name="speed" value="0.2"/>
+        	<param name="turn" value="0.2"/>
+    	</node>
+</launch>
