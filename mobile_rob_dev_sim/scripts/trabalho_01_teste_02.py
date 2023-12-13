@@ -60,7 +60,7 @@ class Navigation:
 		self.s_goal = Node(p_goal)
 		self.laser_float = [0] * 720
 		self.delta_theta = 5
-		self.dist_wall = 5
+		self.dist_wall = 6
 		self.iter_max = iter_max
 		self.v_x = 0.5 # forward velocity
 		self.rot = 0.2 # rotation velocity
@@ -74,7 +74,17 @@ class Navigation:
 		self.planning_flag = True
 		self.start_move_forward = True
 		self.time_start_forward = 0
+		self.time_to_move_forward = 4
 		self.time_current = 0
+		self.min_dist = 0
+		self.min_dist_limit = 0.5
+		self.angle_to_min = 0
+		self.dist_front = 0
+		self.dist_left = 0
+		self.dist_right = 0
+		self.difference = 0
+		
+
 		
 		
 	def get_distance_and_angle(self,node_start, node_end):
@@ -97,32 +107,52 @@ class Navigation:
 		self.dist_total, self.theta_total = self.get_distance_and_angle(self.s_now,self.s_goal)
 		
 		self.dist_local = self.laser_float[int(self.theta_total)*2]
-		
-		
-		
-		
+			
 		if self.dist_local > self.dist_total:
-			print("fuck you")
+			print("--")
 		
 		else:
-			self.theta_new = self.theta_total
-			print("self.theta_new = " + str(self.theta_new))
-			for i in range(self.iter_max):
+			if self.min_dist < self.min_dist_limit:
 				dist_local_minus = self.laser_float[int(self.theta_new - self.delta_theta)*2]
 				dist_local_plus = self.laser_float[int(self.theta_new + self.delta_theta)*2]
+				self.theta_new = self.theta_total
+				print("self.theta_new = " + str(self.theta_new))
+				while self.dist_local < 15:
+					dist_local_minus = self.laser_float[int(self.theta_new - self.delta_theta)*2]
+					dist_local_plus = self.laser_float[int(self.theta_new + self.delta_theta)*2]
 				
-				if dist_local_plus > dist_local_minus:
-					self.theta_new = self.theta_new + self.delta_theta
-					self.dist_local = dist_local_plus 
-					print("self.theta_new = " + str(self.theta_new) + ", self.dist_local = " + str(self.dist_local))
+					if dist_local_plus > dist_local_minus:
+						self.theta_new = self.theta_new + self.delta_theta
+						self.dist_local = dist_local_plus 
+						print("self.theta_new = " + str(self.theta_new) + ", self.dist_local = " + str(self.dist_local))
 					
-				else:
-					self.theta_new = self.theta_new - self.delta_theta
-					self.dist_local = dist_local_minus
-					print("self.theta_new = " + str(self.theta_new) + ", self.dist_local = " + str(self.dist_local))
+					else:
+						self.theta_new = self.theta_new - self.delta_theta
+						self.dist_local = dist_local_minus
+						print("self.theta_new = " + str(self.theta_new) + ", self.dist_local = " + str(self.dist_local))
+
+			
+			else:
+				self.theta_new = self.theta_total
+				print("self.theta_new = " + str(self.theta_new))
+				for i in range(self.iter_max):
+					dist_local_minus = self.laser_float[int(self.theta_new - self.delta_theta)*2]
+					dist_local_plus = self.laser_float[int(self.theta_new + self.delta_theta)*2]
 					
-				if self.dist_local > self.dist_wall:
-					break
+					if dist_local_plus > dist_local_minus:
+						self.theta_new = self.theta_new + self.delta_theta
+						self.dist_local = dist_local_plus 
+						print("self.theta_new = " + str(self.theta_new) + ", self.dist_local = " + str(self.dist_local))
+						
+					else:
+						self.theta_new = self.theta_new - self.delta_theta
+						self.dist_local = dist_local_minus
+						print("self.theta_new = " + str(self.theta_new) + ", self.dist_local = " + str(self.dist_local))
+						
+					if self.dist_local > self.dist_wall:
+						break
+						
+			self.start_move_forward = True
 					
 	# move robot
 	def execute_movement(self):
@@ -132,7 +162,7 @@ class Navigation:
 				self.time_start_forward = time()
 				self.start_move_forward = False
 			move(self.v_x,0)
-			self.time_current = time()
+			self.time_current = time() - self.time_start_forward
 			if self.time_current > self.time_to_move_forward:
 				self.planning_flag = True
 				self.start_move_forward = True
@@ -141,6 +171,23 @@ class Navigation:
 			move(0,-self.rot)
 		elif theta_error < -5:
 			move(0,self.rot)
+		'''						
+		if self.dist_left < self.min_dist_limit or self.dist_right < self.min_dist_limit:
+			if self.angle_to_min >= 85 and self.angle_to_min <= 95:
+				move(self.v_x,0)
+			elif self.angle_to_min >= 265 and self.angle_to_min <= 275:
+				move(self.v_x,0)
+			else:
+				move(0,self.rot)
+
+		else:
+			if abs(self.difference) < 30:
+				move(self.v_x,0)
+			elif self.difference < -30:
+				move(0,self.rot)
+			elif self.difference > 30:
+				move(0,-self.rot)'''
+		
 						
 	# get the laser messages
 	def callback_laser(self,msg):
@@ -148,50 +195,42 @@ class Navigation:
 		# 90 graus: right side of the robot
 		# 180 graus: in front of the robo
 		# 270 graus: left side of the robot
-		dist_limit = 1.2 #minimum distance limit to move forward
 
 		dist_check = 15
 		difference_check = 30
 
 		laser_raw = msg.ranges
 		self.laser_float = [float(r) for r in laser_raw]
-		min_dist = min(laser_raw) # minimum distance
+		self.min_dist = min(laser_raw) # minimum distance
 		max_dist = max(laser_raw) # maximum distance
-		angle_to_min = int((laser_raw.index(min(laser_raw)) + 1)/2) #angle to minimum distance
+		self.angle_to_min = int((laser_raw.index(min(laser_raw)) + 1)/2) #angle to minimum distance
 		angle_to_max = int((laser_raw.index(max(laser_raw)) + 1)/2) #angle to maximum distance
 		angle_to_max_front = int((laser_raw.index(max(laser_raw[180:540])) + 1)/2) #angle to maximum distance
 		angle_to_min_rear = int((laser_raw.index(min(min(laser_raw[0:180]),min(laser_raw[540:720]))) + 1)/2) #angle to maximum distance
 	
-		dist_front = laser_raw[360] #distance in front of robot
-		dist_right = laser_raw[180] #distance right of the robot
-		dist_left  = laser_raw[540] #distance left of the robot
+		self.dist_front = laser_raw[360] #distance in front of robot
+		self.dist_right = laser_raw[180] #distance right of the robot
+		self.dist_left  = laser_raw[540] #distance left of the robot
 	
-		sum_dist_right = 0
-		sum_dist_left = 0
-		angle_med_right = 0
-		angle_med_left = 0
+		self.sum_dist_right = 0
+		self.sum_dist_left = 0
 		for i in range(180):
 			if self.laser_float[i+180] > dist_check:
 				self.laser_float[i+180] = dist_check
 			if self.laser_float[i + 360] > dist_check:
 				self.laser_float[i + 360] = dist_check
 			
-			sum_dist_right = sum_dist_right + self.laser_float[i+180]
-			sum_dist_left  = sum_dist_left + self.laser_float[i+360]
-			angle_med_right = angle_med_right + self.laser_float[i+180]*int((self.laser_float.index(self.laser_float[i+180]) + 1)/2)
-			angle_med_left = angle_med_left + self.laser_float[i+360]*int((self.laser_float.index(self.laser_float[i+360]) + 1)/2)
-		
-		angle_med_right = angle_med_right/sum_dist_right - 90
-		angle_med_left = 270 - angle_med_left/sum_dist_left
+			self.sum_dist_right = self.sum_dist_right + self.laser_float[i+180]
+			self.sum_dist_left  = self.sum_dist_left + self.laser_float[i+360]
 	
-		sum_distance = sum_dist_right + sum_dist_left
-		angle_distance = int((angle_med_right*sum_dist_right + angle_med_left*sum_dist_left)/sum_distance)
-	
-		difference = sum_dist_right - sum_dist_left
+		self.difference = self.sum_dist_right - self.sum_dist_left
 		
-		if self.planning_flag:
+		
+		
+		if self.planning_flag or self.min_dist < self.min_dist_limit:
 			path = nav.planning()
 			self.planning_flag = False
+			
 		
 		
 		nav.execute_movement()
@@ -216,5 +255,3 @@ if __name__ == '__main__':
 	print("Entrei")
 	rospy.spin() # this will block untill you hit Ctrl+C
    
-
-
