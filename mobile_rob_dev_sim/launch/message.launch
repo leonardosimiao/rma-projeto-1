@@ -45,8 +45,14 @@ Description: This is the gazebo launch for the mobile_rob_dev_sim V6 robot in a 
 
     <!-- Map Server -->
     <arg name="map_file" default="/home/auqua/dcrobot_ws/src/dcrobot/mobile_rob_dev_sim/config/mapa.yaml"/>
-    <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)"/>
-    
+    <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)">
+    	<param name="frame_id" value="map"/>
+    </node>
+    <node pkg="tf" type="static_transform_publisher" name="odom_to_map" args="2.4 0 0.0 0 0 0 /map /odom 100"/>
+    <!-- EKF -->
+    <node name="ekf_localization" pkg="robot_localization" type="ekf_localization_node">
+    	<rosparam command="load" file="$(find smb_control)/config/localization.yaml"/>
+    </node>
     <!-- AMCL Node -->
 <node pkg="amcl" type="amcl" name="amcl" output="screen">
     <param name="use_map_topic" value="true"/>
