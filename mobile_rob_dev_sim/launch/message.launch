@@ -98,5 +98,7 @@ Description: This is the gazebo launch for the mobile_rob_dev_sim V6 robot in a 
 	<param name="lookahead_frame_id" value="$(arg lookahead_frame_id)"/>
 	<param name="acker_frame_id" value="$(arg acker_frame_id)"/>
 	</node>
-  
+    <node name="ekf_localization" pkg="robot_localization" type="ekf_localization_node">
+    	<rosparam command="load" file="$(find smb_control)/config/localization.yaml"/>
+	</node>
 </launch>
