@@ -2,9 +2,9 @@
 Projeto de Implementação 1 da Disciplina de Robôs Móveis Autônomos
 
 Alunos:
-Antonio Carlos Daud Filho
-Leandro Silva de Assis
-Leonardo Simião de Luna
+* Antonio Carlos Daud Filho
+* Leandro Silva de Assis
+* Leonardo Simião de Luna
 
 Sistema operacional:	Ubuntu 20.04
 ROS	Noetic
